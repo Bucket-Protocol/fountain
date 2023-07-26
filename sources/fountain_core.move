@@ -98,6 +98,7 @@ module bucket_fountain::fountain_core {
         lock_time: u64,
         ctx: &mut TxContext,
     ): StakeProof<S, R> {
+        source_to_pool(fountain, clock);
         let stake_amount = balance::value(&input);
         balance::join(&mut fountain.staked, input);
         let stake_weight = math::compute_weight(
