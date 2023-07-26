@@ -30,7 +30,7 @@ module bucket_fountain::fountain_core {
         id: UID,
         fountain_id: ID,
         stake_amount: u64,
-        start_s: u128,
+        start_uint: u128,
         stake_weight: u64,
         lock_until: u64,
     }
@@ -121,7 +121,7 @@ module bucket_fountain::fountain_core {
             id: object::new(ctx),
             fountain_id,
             stake_amount,
-            start_s: fountain.cumulative_unit,
+            start_uint: fountain.cumulative_unit,
             stake_weight,
             lock_until: current_time + lock_time,
         }
@@ -137,7 +137,7 @@ module bucket_fountain::fountain_core {
         assert!(object::id(fountain) == fountain_id, EWrongFountainId);
         let reward_amount = (math::mul_factor_u128(
             (proof.stake_weight as u128),
-            fountain.cumulative_unit - proof.start_s,
+            fountain.cumulative_unit - proof.start_uint,
             DISTRIBUTION_PRECISION,
             ) as u64);
         event::emit(ClaimEvent<S, R> {
@@ -145,7 +145,7 @@ module bucket_fountain::fountain_core {
             reward_amount,
             claim_time: clock::timestamp_ms(clock),
         });
-        proof.start_s = fountain.cumulative_unit;
+        proof.start_uint = fountain.cumulative_unit;
         balance::split(&mut fountain.pool, reward_amount)
     }
 
@@ -160,7 +160,7 @@ module bucket_fountain::fountain_core {
             id,
             fountain_id,
             stake_amount,
-            start_s: _,
+            start_uint: _,
             stake_weight,
             lock_until
         } = proof;
@@ -226,7 +226,7 @@ module bucket_fountain::fountain_core {
     }
 
     public fun get_reward_amount<S, R>(fountain: &Fountain<S, R>, proof: &StakeProof<S, R>): u64 {
-        (math::mul_factor_u128((proof.stake_weight as u128), fountain.cumulative_unit - proof.start_s, DISTRIBUTION_PRECISION) as u64)
+        (math::mul_factor_u128((proof.stake_weight as u128), fountain.cumulative_unit - proof.start_uint, DISTRIBUTION_PRECISION) as u64)
     }
 
     fun release_resource<S, R>(fountain: &mut Fountain<S, R>, clock: &Clock): Balance<R> {
@@ -256,8 +256,10 @@ module bucket_fountain::fountain_core {
     }
 
     fun source_to_pool<S, R>(fountain: &mut Fountain<S, R>, clock: &Clock) {
-        let resource = release_resource(fountain, clock);
-        collect_resource(fountain, resource);
+        if (get_source_balance(fountain) > 0) {
+            let resource = release_resource(fountain, clock);
+            collect_resource(fountain, resource);
+        }
     }
 
     #[test_only]
@@ -266,7 +268,7 @@ module bucket_fountain::fountain_core {
             id,
             fountain_id: _,
             stake_amount: _,
-            start_s: _,
+            start_uint: _,
             stake_weight: _,
             lock_until: _ 
         } = proof;
