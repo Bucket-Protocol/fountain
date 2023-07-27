@@ -17,23 +17,21 @@ module bucket_fountain::test_lp {
             option::none(),
             ctx,
         );
-        transfer::freeze_object(treasury_cap);
-        transfer::freeze_object(metadata);
+        transfer::public_freeze_object(treasury_cap);
+        transfer::public_freeze_object(metadata);
     }
 }
 
 #[test_only]
 module bucket_fountain::test_utils {
     use std::vector;
-    use sui::sui::SUI;
     use sui::address;
     use sui::test_random;
     use sui::test_scenario::{Self as ts, Scenario};
     use sui::clock::{Self, Clock};
     use sui::balance;
     use sui::coin;
-    use bucket_fountain::fountain_core::{Self as fc, Fountain};
-    use bucket_fountain::test_lp::TEST_LP;
+    use bucket_fountain::fountain_core::{Self as fc, Fountain, StakeProof};
     use bucket_fountain::math;
     use bucket_fountain::fountain_periphery as fp;
 
@@ -76,7 +74,8 @@ module bucket_fountain::test_utils {
     public fun stake_randomly<S, R>(
         scenario: &mut Scenario,
         staker_count: u64,
-    ): (vector<address>, vector<u64>) {
+        is_initial: bool,
+    ): vector<address> {
         let seed = b"fountain stakers";
         vector::push_back(&mut seed, ((staker_count % 256) as u8));
         let rang = test_random::new(seed);
@@ -85,7 +84,10 @@ module bucket_fountain::test_utils {
         let stakers = vector<address>[];
         let idx: u64 = 1;
         while (idx <= staker_count) {
-            vector::push_back(&mut stakers, address::from_u256(test_random::next_u256(rangr)));
+            vector::push_back(
+                &mut stakers,
+                address::from_u256(test_random::next_u256(rangr))
+            );
             idx = idx + 1;
         };
 
@@ -116,19 +118,32 @@ module bucket_fountain::test_utils {
             idx = idx + 1;
         };
 
-        let idx: u64 = 0;
-        ts::next_tx(scenario, DEV);
-        {
-            let fountain = ts::take_shared<Fountain<S, R>>(scenario);
-            assert!(fc::get_source_balance(&fountain) == 0, 0);
-            assert!(fc::get_pool_balance(&fountain) == 0, 0);
-            assert!(fc::get_staked_balance(&fountain) == expected_total_stake_amount, 0);
-            assert!(fc::get_total_weight(&fountain) == expected_total_stake_weight, 0);
-            assert!(fc::get_cumulative_unit(&fountain) == 0, 0);
-            ts::return_shared(fountain);
+        if (is_initial) {
+            ts::next_tx(scenario, DEV);
+            {
+                let fountain = ts::take_shared<Fountain<S, R>>(scenario);
+                assert!(fc::get_source_balance(&fountain) == 0, 0);
+                assert!(fc::get_pool_balance(&fountain) == 0, 0);
+                assert!(fc::get_staked_balance(&fountain) == expected_total_stake_amount, 0);
+                assert!(fc::get_total_weight(&fountain) == expected_total_stake_weight, 0);
+                assert!(fc::get_cumulative_unit(&fountain) == 0, 0);
+                let idx: u64 = 0;
+                while (idx < staker_count) {
+                    // std::debug::print(&idx);
+                    let staker = *vector::borrow(&stakers, idx);
+                    // std::debug::print(&staker);
+                    let expected_weight = *vector::borrow(&staker_weights, idx);
+                    // std::debug::print(&expected_weight);
+                    let proof = ts::take_from_address<StakeProof<S, R>>(scenario, staker);
+                    assert!(fc::get_proof_stake_weight(&proof) == expected_weight, 0);
+                    ts::return_to_address(staker, proof);
+                    idx = idx + 1;
+                };
+                ts::return_shared(fountain);
+            };
         };
 
-        (stakers, staker_weights)
+        stakers
     }
 
     public fun dev(): address { DEV }
