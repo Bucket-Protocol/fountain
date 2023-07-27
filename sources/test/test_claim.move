@@ -177,6 +177,38 @@ module bucket_fountain::test_claim {
             ts::return_shared(fountain);
         };
 
+        let airdrop_amount: u64 = flow_amount / 3;
+        ts::next_tx(scenario, ftu::dev());
+        {
+            let fountain = ts::take_shared<Fountain<TEST_LP, SUI>>(scenario);
+            let airdrop_input = balance::create_for_testing<SUI>(airdrop_amount);
+            let airdrop_input = coin::from_balance(airdrop_input, ts::ctx(scenario));
+            fp::airdrop(&mut fountain, airdrop_input);
+            ts::return_shared(fountain);
+        };
+
+        let idx: u64 = 0;
+        while (idx < staker_count) {
+            let staker = *vector::borrow(&stakers, idx);
+            ts::next_tx(scenario, staker);
+            {
+                let clock = ts::take_shared<Clock>(scenario);
+                let fountain = ts::take_shared<Fountain<TEST_LP, SUI>>(scenario);
+                // std::debug::print(&fountain);
+                let proof = ts::take_from_sender<StakeProof<TEST_LP, SUI>>(scenario);
+                let total_weight = fc::get_total_weight(&fountain);
+                let stake_weight = fc::get_proof_stake_weight(&proof);
+                let expected_reward_amount = math::mul_factor(airdrop_amount, stake_weight, total_weight);
+                let reward = fc::claim(&clock, &mut fountain, &mut proof);
+                assert!(balance::value(&reward) == expected_reward_amount, 0);
+                balance::destroy_for_testing(reward);
+                ts::return_shared(clock);
+                ts::return_shared(fountain);
+                ts::return_to_sender(scenario, proof);
+            };
+            idx = idx + 1;
+        };
+
         ts::end(scenario_val);
     }
 
