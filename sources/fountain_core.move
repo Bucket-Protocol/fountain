@@ -259,6 +259,8 @@ module bucket_fountain::fountain_core {
         if (get_source_balance(fountain) > 0) {
             let resource = release_resource(fountain, clock);
             collect_resource(fountain, resource);
+        } else {
+            fountain.latest_release_time = clock::timestamp_ms(clock);
         }
     }
 
