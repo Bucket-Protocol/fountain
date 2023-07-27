@@ -34,7 +34,7 @@ module bucket_fountain::test_claim {
         {
             let fountain = ts::take_shared<Fountain<TEST_LP, SUI>>(scenario);
             let clock = ts::take_shared<Clock>(scenario);
-            let resource_amount =flow_amount;
+            let resource_amount = flow_amount;
             let resource = balance::create_for_testing<SUI>(resource_amount);
             let resource = coin::from_balance(resource, ts::ctx(scenario));
             fp::supply(&clock, &mut fountain, resource);
@@ -79,14 +79,11 @@ module bucket_fountain::test_claim {
             let staker = *vector::borrow(&stakers, idx);
             ts::next_tx(scenario, staker);
             {
-                let fountain = ts::take_shared<Fountain<TEST_LP, SUI>>(scenario);
-                // std::debug::print(&fountain);
                 let staker_reward = ts::take_from_sender<Coin<SUI>>(scenario);
                 let expected_reward_amount = *vector::borrow(&staker_reward_amounts, idx);
                 assert!(coin::value(&staker_reward) == expected_reward_amount, 0);
                 let staker_reward = coin::into_balance(staker_reward);
                 balance::destroy_for_testing(staker_reward);
-                ts::return_shared(fountain);
             };
             idx = idx + 1;
         };
@@ -154,14 +151,11 @@ module bucket_fountain::test_claim {
             let staker = *vector::borrow(&stakers, idx);
             ts::next_tx(scenario, staker);
             {
-                let fountain = ts::take_shared<Fountain<TEST_LP, SUI>>(scenario);
-                // std::debug::print(&fountain);
                 let staker_reward = ts::take_from_sender<Coin<SUI>>(scenario);
                 let expected_reward_amount = *vector::borrow(&staker_reward_amounts, idx);
                 assert!(coin::value(&staker_reward) == expected_reward_amount, 0);
                 let staker_reward = coin::into_balance(staker_reward);
                 balance::destroy_for_testing(staker_reward);
-                ts::return_shared(fountain);
             };
             idx = idx + 1;
         };
