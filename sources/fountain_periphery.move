@@ -33,6 +33,11 @@ module bucket_fountain::fountain_periphery {
         core::airdrop(fountain, resource);
     }
 
+    public entry fun tune<S, R>(fountain: &mut Fountain<S, R>, resource: Coin<R>) {
+        let resource = coin::into_balance(resource);
+        core::tune(fountain, resource);
+    }
+
     public entry fun stake<S, R>(
         clock: &Clock,
         fountain: &mut Fountain<S, R>,
