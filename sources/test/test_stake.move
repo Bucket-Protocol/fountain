@@ -61,7 +61,7 @@ module bucket_fountain::test_stake {
         {
             let clock = ts::take_shared<Clock>(scenario);
             let fountain = ts::take_shared<Fountain<TEST_LP, SUI>>(scenario);
-            let (min_lock_time, max_lock_time) = fc::get_lock_time_range(&fountain);
+            let (min_lock_time, _max_lock_time) = fc::get_lock_time_range(&fountain);
             let stake_amount: u64 = 1_234_567_890;
             let lp_token = balance::create_for_testing<TEST_LP>(stake_amount);
             let lp_token = coin::from_balance(lp_token, ts::ctx(scenario));
@@ -93,7 +93,7 @@ module bucket_fountain::test_stake {
         {
             let clock = ts::take_shared<Clock>(scenario);
             let fountain = ts::take_shared<Fountain<TEST_LP, SUI>>(scenario);
-            let (min_lock_time, max_lock_time) = fc::get_lock_time_range(&fountain);
+            let (_min_lock_time, max_lock_time) = fc::get_lock_time_range(&fountain);
             let stake_amount: u64 = 9_876_543_210;
             let lp_token = balance::create_for_testing<TEST_LP>(stake_amount);
             let lp_token = coin::from_balance(lp_token, ts::ctx(scenario));

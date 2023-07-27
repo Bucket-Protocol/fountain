@@ -274,7 +274,7 @@ module bucket_fountain::fountain_core {
             pool,
             staked,
             total_weight: _,
-            cumulative_unit: u128,
+            cumulative_unit: _,
             latest_release_time: _,
             min_lock_time: _,
             max_lock_time: _,
