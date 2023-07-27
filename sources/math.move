@@ -53,4 +53,16 @@ module bucket_fountain::math {
         // std::debug::print(&value);
         assert!(value == 40000000000000, 0);
     }
+
+    #[test]
+    #[expected_failure(abort_code = EDividedByZero)]
+    fun test_mul_factor_divided_by_zero() {
+        mul_factor(3, 1, 0);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = EDividedByZero)]
+    fun test_mul_factor_u128_divided_by_zero() {
+        mul_factor_u128(3, 1, 0);
+    }
 }
