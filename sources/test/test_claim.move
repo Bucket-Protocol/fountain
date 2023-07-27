@@ -209,6 +209,44 @@ module bucket_fountain::test_claim {
             idx = idx + 1;
         };
 
+        ts::next_tx(scenario, ftu::dev());
+        let pool_balance = {
+            let fountain = ts::take_shared<Fountain<TEST_LP, SUI>>(scenario);
+            let pool_balance = fc::get_pool_balance(&fountain);
+            ts::return_shared(fountain);
+            pool_balance
+        };
+
+        let tune_amount: u64 = 10;
+        ts::next_tx(scenario, ftu::dev());
+        {
+            let fountain = ts::take_shared<Fountain<TEST_LP, SUI>>(scenario);
+            let tune_input = balance::create_for_testing<SUI>(tune_amount);
+            let tune_input = coin::from_balance(tune_input, ts::ctx(scenario));
+            fp::tune(&mut fountain, tune_input);
+            ts::return_shared(fountain);
+        };
+
+        let idx: u64 = 0;
+        while (idx < staker_count) {
+            let staker = *vector::borrow(&stakers, idx);
+            ts::next_tx(scenario, staker);
+            {
+                let clock = ts::take_shared<Clock>(scenario);
+                let fountain = ts::take_shared<Fountain<TEST_LP, SUI>>(scenario);
+                // std::debug::print(&fountain);
+                assert!(fc::get_pool_balance(&fountain) == pool_balance + tune_amount, 0);
+                let proof = ts::take_from_sender<StakeProof<TEST_LP, SUI>>(scenario);
+                let reward = fc::claim(&clock, &mut fountain, &mut proof);
+                assert!(balance::value(&reward) == 0, 0);
+                balance::destroy_for_testing(reward);
+                ts::return_shared(clock);
+                ts::return_shared(fountain);
+                ts::return_to_sender(scenario, proof);
+            };
+            idx = idx + 1;
+        };
+
         ts::end(scenario_val);
     }
 
