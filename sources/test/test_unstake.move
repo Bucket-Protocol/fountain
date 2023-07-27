@@ -156,7 +156,6 @@ module bucket_fountain::test_unstake {
                 let clock = ts::take_shared<Clock>(scenario);
                 let fountain = ts::take_shared<Fountain<TEST_LP, SUI>>(scenario);
                 let proof = ts::take_from_sender<StakeProof<TEST_LP, SUI>>(scenario);
-                let lock_util = fc::get_proof_lock_until(&proof);
                 let total_weight = fc::get_total_weight(&fountain);
                 let stake_weight = fc::get_proof_stake_weight(&proof);
                 let stake_amount = fc::get_proof_stake_amount(&proof);
