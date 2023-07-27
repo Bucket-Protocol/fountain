@@ -29,6 +29,11 @@ module bucket_fountain::math {
         weight
     }
 
+    #[test_only]
+    public fun approx_equal(x: u64, y: u64, tolarence: u64): bool {
+        sui::math::diff(x, y) <= tolarence
+    }
+
     #[test]
     #[expected_failure]
     fun test_native_mul() {
@@ -45,7 +50,7 @@ module bucket_fountain::math {
         let price = 4000000000; // 1 SUI = 4000 USD
         let decimals = 1000000;
         let value = mul_factor(amount, price, decimals);
-        std::debug::print(&value);
+        // std::debug::print(&value);
         assert!(value == 40000000000000, 0);
     }
 }
