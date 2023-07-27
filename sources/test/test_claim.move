@@ -28,7 +28,7 @@ module bucket_fountain::test_claim {
         let scenario = &mut scenario_val;
 
         let staker_count: u64 = 100;
-        let stakers = ftu::stake_randomly<TEST_LP, SUI>(scenario, staker_count, true);
+        let stakers = ftu::stake_randomly<TEST_LP, SUI>(scenario, staker_count);
 
         ts::next_tx(scenario, ftu::dev());
         {
@@ -114,7 +114,7 @@ module bucket_fountain::test_claim {
         };
 
         let second_staker_count: u64 = 69;
-        let second_stakers = ftu::stake_randomly<TEST_LP, SUI>(scenario, second_staker_count, false);
+        let second_stakers = ftu::stake_randomly<TEST_LP, SUI>(scenario, second_staker_count);
 
         ts::next_tx(scenario, ftu::dev());
         {

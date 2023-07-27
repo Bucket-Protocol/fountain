@@ -74,7 +74,6 @@ module bucket_fountain::test_utils {
     public fun stake_randomly<S, R>(
         scenario: &mut Scenario,
         staker_count: u64,
-        is_initial: bool,
     ): vector<address> {
         let seed = b"fountain stakers";
         vector::push_back(&mut seed, ((staker_count % 256) as u8));
@@ -89,6 +88,14 @@ module bucket_fountain::test_utils {
                 address::from_u256(test_random::next_u256(rangr))
             );
             idx = idx + 1;
+        };
+
+        ts::next_tx(scenario, DEV);
+        let is_new_fountain = {
+            let fountain = ts::take_shared<Fountain<S, R>>(scenario);
+            let total_staked = fc::get_staked_balance(&fountain);
+            ts::return_shared(fountain);
+            total_staked == 0
         };
 
         let idx: u64 = 0;
@@ -118,7 +125,7 @@ module bucket_fountain::test_utils {
             idx = idx + 1;
         };
 
-        if (is_initial) {
+        if (is_new_fountain) {
             ts::next_tx(scenario, DEV);
             {
                 let fountain = ts::take_shared<Fountain<S, R>>(scenario);
