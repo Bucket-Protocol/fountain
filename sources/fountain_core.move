@@ -265,7 +265,28 @@ module bucket_fountain::fountain_core {
     }
 
     #[test_only]
-    public fun destroy_for_testing<S, R>(proof: StakeProof<S, R>) {
+    public fun destroy_fountain_for_testing<S, R>(fountain: Fountain<S, R>) {
+        let Fountain {
+            id,
+            source,
+            flow_amount: _,
+            flow_interval: _,
+            pool,
+            staked,
+            total_weight: _,
+            cumulative_unit: u128,
+            latest_release_time: _,
+            min_lock_time: _,
+            max_lock_time: _,
+        } = fountain;
+        object::delete(id);
+        balance::destroy_for_testing(source);
+        balance::destroy_for_testing(pool);
+        balance::destroy_for_testing(staked);
+    }
+
+    #[test_only]
+    public fun destroy_proof_for_testing<S, R>(proof: StakeProof<S, R>) {
         let StakeProof {
             id,
             fountain_id: _,
