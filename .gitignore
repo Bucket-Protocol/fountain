@@ -1,2 +1,4 @@
 build/
 sui.log*
+.coverage_map.mvcov
+.trace
