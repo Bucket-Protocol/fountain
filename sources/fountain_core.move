@@ -203,7 +203,7 @@ module bucket_fountain::fountain_core {
         )
     }
 
-    public fun update_flow_rate<S, R>(
+    public entry fun update_flow_rate<S, R>(
         admin_cap: &AdminCap,
         clock: &Clock,
         fountain: &mut Fountain<S, R>,
