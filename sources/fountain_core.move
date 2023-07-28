@@ -12,6 +12,11 @@ module bucket_fountain::fountain_core {
     const EStillLocked: u64 = 0;
     const EWrongFountainId: u64 = 1;
 
+    struct AdminCap has key, store {
+        id: UID,
+        fountain_id: ID,
+    }
+
     struct Fountain<phantom S, phantom R> has store, key {
         id: UID,
         source: Balance<R>,
@@ -76,6 +81,19 @@ module bucket_fountain::fountain_core {
             min_lock_time,
             max_lock_time,
         }
+    }
+
+    public fun new_fountain_with_admin_cap<S, R>(
+        flow_amount: u64,
+        flow_interval: u64,
+        min_lock_time: u64,
+        max_lock_time: u64,
+        ctx: &mut TxContext,
+    ): (Fountain<S, R>, AdminCap) {
+        let fountain = new_fountain<S, R>(flow_amount, flow_interval, min_lock_time, max_lock_time, ctx);
+        let fountain_id = object::id(&fountain);
+        let admin_cap = AdminCap { id: object::new(ctx), fountain_id };
+        (fountain, admin_cap)
     }
 
     public fun supply<S, R>(clock: &Clock, fountain: &mut Fountain<S, R>, resource: Balance<R>) {
@@ -183,6 +201,19 @@ module bucket_fountain::fountain_core {
             balance::split(&mut fountain.staked, stake_amount),
             balance::split(&mut fountain.pool, reward_amount),
         )
+    }
+
+    public fun update_flow_rate<S, R>(
+        admin_cap: &AdminCap,
+        clock: &Clock,
+        fountain: &mut Fountain<S, R>,
+        flow_amount: u64,
+        flow_interval: u64
+    ) {
+        assert!(admin_cap.fountain_id == object::id(fountain), EWrongFountainId);
+        source_to_pool(fountain, clock);
+        fountain.flow_amount = flow_amount;
+        fountain.flow_interval = flow_interval;
     }
 
     public fun get_flow_rate<S, R>(fountain: &Fountain<S, R>): (u64, u64) {

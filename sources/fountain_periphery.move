@@ -23,6 +23,24 @@ module bucket_fountain::fountain_periphery {
         transfer::public_share_object(fountain);
     }
 
+    public entry fun create_fountain_with_admin_cap<S, R>(
+        flow_amount: u64,
+        flow_interval: u64,
+        min_lock_time: u64,
+        max_lock_time: u64,
+        ctx: &mut TxContext,
+    ) {
+        let (fountain, admin_cap)= core::new_fountain_with_admin_cap<S, R>(
+            flow_amount,
+            flow_interval,
+            min_lock_time,
+            max_lock_time,
+            ctx,
+        );
+        transfer::public_share_object(fountain);
+        transfer::public_transfer(admin_cap, tx_context::sender(ctx));
+    }
+
     public entry fun supply<S, R>(clock: &Clock, fountain: &mut Fountain<S, R>, resource: Coin<R>) {
         let resource = coin::into_balance(resource);
         core::supply(clock, fountain, resource);
