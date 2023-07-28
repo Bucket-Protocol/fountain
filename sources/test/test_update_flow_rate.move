@@ -191,4 +191,61 @@ module bucket_fountain::test_update_flow_rate {
 
         ts::end(scenario_val);
     }
+
+    #[test]
+    #[expected_failure(abort_code = fc::EWrongFountainId)]
+    fun test_update_with_wrong_admin_cap() {
+        let flow_amount: u64 = 100_000_000_000_000;
+        let flow_interval: u64 = 86400_000 * 7; // 1 week
+        let min_lock_time: u64 = flow_interval * 5;
+        let max_lock_time: u64 = flow_interval * 20;
+        let scenario_val = ftu::setup_with_admin_cap<TEST_LP, SUI>(
+            flow_amount,
+            flow_interval,
+            min_lock_time,
+            max_lock_time,
+        );
+        let scenario = &mut scenario_val;
+        let _ = ftu::stake_randomly<TEST_LP, SUI>(scenario, 3);
+
+        ts::next_tx(scenario, ftu::dev());
+        {
+            let fountain = ts::take_shared<Fountain<TEST_LP, SUI>>(scenario);
+            let clock = ts::take_shared<Clock>(scenario);
+            let resource_amount = flow_amount;
+            let resource = balance::create_for_testing<SUI>(resource_amount);
+            let resource = coin::from_balance(resource, ts::ctx(scenario));
+            fp::supply(&clock, &mut fountain, resource);
+            // std::debug::print(&fountain);
+            ts::return_shared(fountain);
+            ts::return_shared(clock);
+        };
+
+        let ten_weeks: u64 = 86400_000 * 7 * 10;
+        ts::next_tx(scenario, ftu::dev());
+        {
+            let clock = ts::take_shared<Clock>(scenario);
+            clock::increment_for_testing(&mut clock, ten_weeks);
+            ts::return_shared(clock);
+        };
+
+        ts::next_tx(scenario, ftu::dev());
+        {
+            let clock = ts::take_shared<Clock>(scenario);
+            let admin_cap = ts::take_from_sender<AdminCap>(scenario);
+            let fountain = fc::new_fountain<TEST_LP, SUI>(
+                flow_amount,
+                flow_interval,
+                min_lock_time,
+                max_lock_time,
+                ts::ctx(scenario),
+            );
+            fc::update_flow_rate(&admin_cap, &clock, &mut fountain, flow_amount * 3, flow_interval * 2);
+            ts::return_shared(clock);
+            fc::destroy_fountain_for_testing(fountain);
+            ts::return_to_sender(scenario, admin_cap);
+        };
+
+        ts::end(scenario_val);
+    }
 }
