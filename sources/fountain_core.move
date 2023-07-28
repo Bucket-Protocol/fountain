@@ -173,7 +173,8 @@ module bucket_fountain::fountain_core {
         proof: StakeProof<S, R>,
     ): (Balance<S>, Balance<R>) {
         source_to_pool(fountain, clock);
-        let reward_amount = get_reward_amount(fountain, &proof);
+        let current_time = clock::timestamp_ms(clock);
+        let reward = claim(clock, fountain, &mut proof);
         let StakeProof {
             id,
             fountain_id,
@@ -183,24 +184,16 @@ module bucket_fountain::fountain_core {
             lock_until
         } = proof;
         assert!(object::id(fountain) == fountain_id, EWrongFountainId);
-        let current_time = clock::timestamp_ms(clock);
         assert!(current_time >= lock_until, EStillLocked);
         object::delete(id);
-        event::emit(ClaimEvent<S, R> {
-            fountain_id,
-            reward_amount,
-            claim_time: current_time,
-        });
         event::emit(UnstakeEvent<S, R> {
             fountain_id,
             unstake_amount: stake_amount,
             unstake_weigth: stake_weight,
             end_time: current_time,
         });
-        (
-            balance::split(&mut fountain.staked, stake_amount),
-            balance::split(&mut fountain.pool, reward_amount),
-        )
+        let returned_stake = balance::split(&mut fountain.staked, stake_amount);
+        (returned_stake, reward)
     }
 
     public entry fun update_flow_rate<S, R>(
@@ -256,8 +249,36 @@ module bucket_fountain::fountain_core {
         proof.lock_until
     }
 
-    public fun get_reward_amount<S, R>(fountain: &Fountain<S, R>, proof: &StakeProof<S, R>): u64 {
-        (math::mul_factor_u128((proof.stake_weight as u128), fountain.cumulative_unit - proof.start_uint, DISTRIBUTION_PRECISION) as u64)
+    public fun get_reward_amount<S, R>(
+        fountain: &Fountain<S, R>,
+        proof: &StakeProof<S, R>,
+        current_time: u64,
+    ): u64 {
+        let virtual_released_amount = get_virtual_released_amount(fountain, current_time);
+        let virtual_cumulative_unit = fountain.cumulative_unit + math::mul_factor_u128(
+            (virtual_released_amount as u128),
+            DISTRIBUTION_PRECISION,
+            (fountain.total_weight as u128)
+        );
+        (math::mul_factor_u128((proof.stake_weight as u128), virtual_cumulative_unit - proof.start_uint, DISTRIBUTION_PRECISION) as u64)
+    }
+
+    public fun get_virtual_released_amount<S, R>(fountain: &Fountain<S, R>, current_time: u64): u64 {
+        if (current_time <= fountain.latest_release_time) {
+            0
+        } else {
+            let interval = current_time - fountain.latest_release_time;
+            let released_amount = math::mul_factor(
+                fountain.flow_amount,
+                interval, 
+                fountain.flow_interval,
+            );
+            let source_balance = get_source_balance(fountain);
+            if (released_amount > source_balance) {
+                released_amount = source_balance;
+            };
+            released_amount
+        }
     }
 
     fun release_resource<S, R>(fountain: &mut Fountain<S, R>, clock: &Clock): Balance<R> {
