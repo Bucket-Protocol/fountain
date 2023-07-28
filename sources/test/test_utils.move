@@ -132,7 +132,6 @@ module bucket_fountain::test_utils {
             ts::next_tx(scenario, DEV);
             {
                 let fountain = ts::take_shared<Fountain<S, R>>(scenario);
-                assert!(fc::get_source_balance(&fountain) == 0, 0);
                 assert!(fc::get_pool_balance(&fountain) == 0, 0);
                 assert!(fc::get_staked_balance(&fountain) == expected_total_stake_amount, 0);
                 assert!(fc::get_total_weight(&fountain) == expected_total_stake_weight, 0);

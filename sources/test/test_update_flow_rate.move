@@ -150,7 +150,10 @@ module bucket_fountain::test_update_flow_rate {
                 let stake_weight = fc::get_proof_stake_weight(&proof);
                 let expected_released_amount = math::mul_factor(flow_amount, one_day * 4, flow_interval);
                 let expected_reward_amount = math::mul_factor(expected_released_amount, stake_weight, total_weight);
-                vector::push_back(&mut staker_reward_amounts, expected_reward_amount);
+                let current_time = clock::timestamp_ms(&clock);
+                let reward_amount = fc::get_reward_amount(&fountain, &proof, current_time);
+                assert!(reward_amount == expected_reward_amount, 0);
+                vector::push_back(&mut staker_reward_amounts, reward_amount);
                 fp::claim(&clock, &mut fountain, &mut proof, ts::ctx(scenario));
                 ts::return_shared(clock);
                 ts::return_shared(fountain);

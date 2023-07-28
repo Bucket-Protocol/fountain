@@ -309,12 +309,16 @@ module bucket_fountain::fountain_core {
 
     fun collect_resource<S, R>(fountain: &mut Fountain<S, R>, resource: Balance<R>) {
         let resource_amount = balance::value(&resource);
-        balance::join(&mut fountain.pool, resource);
-        fountain.cumulative_unit = fountain.cumulative_unit + math::mul_factor_u128(
-            (resource_amount as u128),
-            DISTRIBUTION_PRECISION,
-            (fountain.total_weight as u128)
-        );
+        if (resource_amount > 0) {
+            balance::join(&mut fountain.pool, resource);
+            fountain.cumulative_unit = fountain.cumulative_unit + math::mul_factor_u128(
+                (resource_amount as u128),
+                DISTRIBUTION_PRECISION,
+                (fountain.total_weight as u128)
+            );
+        } else {
+            balance::destroy_zero(resource);
+        };
     }
 
     fun source_to_pool<S, R>(fountain: &mut Fountain<S, R>, clock: &Clock) {
