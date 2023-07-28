@@ -66,6 +66,7 @@ module bucket_fountain::fountain_core {
         flow_interval: u64,
         min_lock_time: u64,
         max_lock_time: u64,
+        start_time: u64,
         ctx: &mut TxContext,
     ): Fountain<S, R> {
         Fountain {
@@ -77,7 +78,7 @@ module bucket_fountain::fountain_core {
             staked: balance::zero(),
             total_weight: 0,
             cumulative_unit: 0,
-            latest_release_time: 0,
+            latest_release_time: start_time,
             min_lock_time,
             max_lock_time,
         }
@@ -88,9 +89,10 @@ module bucket_fountain::fountain_core {
         flow_interval: u64,
         min_lock_time: u64,
         max_lock_time: u64,
+        start_time: u64,
         ctx: &mut TxContext,
     ): (Fountain<S, R>, AdminCap) {
-        let fountain = new_fountain<S, R>(flow_amount, flow_interval, min_lock_time, max_lock_time, ctx);
+        let fountain = new_fountain<S, R>(flow_amount, flow_interval, min_lock_time, max_lock_time, start_time, ctx);
         let fountain_id = object::id(&fountain);
         let admin_cap = AdminCap { id: object::new(ctx), fountain_id };
         (fountain, admin_cap)
@@ -264,9 +266,7 @@ module bucket_fountain::fountain_core {
     }
 
     public fun get_virtual_released_amount<S, R>(fountain: &Fountain<S, R>, current_time: u64): u64 {
-        if (current_time <= fountain.latest_release_time) {
-            0
-        } else {
+        if (current_time > fountain.latest_release_time) {
             let interval = current_time - fountain.latest_release_time;
             let released_amount = math::mul_factor(
                 fountain.flow_amount,
@@ -278,23 +278,29 @@ module bucket_fountain::fountain_core {
                 released_amount = source_balance;
             };
             released_amount
+        } else {
+            0
         }
     }
 
     fun release_resource<S, R>(fountain: &mut Fountain<S, R>, clock: &Clock): Balance<R> {
         let current_time = clock::timestamp_ms(clock);
-        let interval = current_time - fountain.latest_release_time;
-        let released_amount = math::mul_factor(
-            fountain.flow_amount,
-            interval, 
-            fountain.flow_interval,
-        );
-        let source_balance = get_source_balance(fountain);
-        if (released_amount > source_balance) {
-            released_amount = source_balance;
-        };
-        fountain.latest_release_time = current_time;
-        balance::split(&mut fountain.source, released_amount)
+        if (current_time > fountain.latest_release_time) {
+            let interval = current_time - fountain.latest_release_time;
+            let released_amount = math::mul_factor(
+                fountain.flow_amount,
+                interval, 
+                fountain.flow_interval,
+            );
+            let source_balance = get_source_balance(fountain);
+            if (released_amount > source_balance) {
+                released_amount = source_balance;
+            };
+            fountain.latest_release_time = current_time;
+            balance::split(&mut fountain.source, released_amount)
+        } else {
+            balance::zero()
+        }
     }
 
     fun collect_resource<S, R>(fountain: &mut Fountain<S, R>, resource: Balance<R>) {
@@ -312,7 +318,10 @@ module bucket_fountain::fountain_core {
             let resource = release_resource(fountain, clock);
             collect_resource(fountain, resource);
         } else {
-            fountain.latest_release_time = clock::timestamp_ms(clock);
+            let current_time = clock::timestamp_ms(clock);
+            if (current_time > fountain.latest_release_time) {
+                fountain.latest_release_time = current_time;
+            };
         }
     }
 

@@ -55,6 +55,7 @@ module bucket_fountain::test_utils {
                 flow_interval,
                 min_lock_time,
                 max_lock_time,
+                0,
                 ts::ctx(scenario),
             );
         };
@@ -88,6 +89,7 @@ module bucket_fountain::test_utils {
                 flow_interval,
                 min_lock_time,
                 max_lock_time,
+                0,
                 ts::ctx(scenario),
             );
         };

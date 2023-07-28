@@ -11,6 +11,7 @@ module bucket_fountain::fountain_periphery {
         flow_interval: u64,
         min_lock_time: u64,
         max_lock_time: u64,
+        start_time: u64,
         ctx: &mut TxContext,
     ) {
         let fountain = core::new_fountain<S, R>(
@@ -18,6 +19,7 @@ module bucket_fountain::fountain_periphery {
             flow_interval,
             min_lock_time,
             max_lock_time,
+            start_time,
             ctx,
         );
         transfer::public_share_object(fountain);
@@ -28,6 +30,7 @@ module bucket_fountain::fountain_periphery {
         flow_interval: u64,
         min_lock_time: u64,
         max_lock_time: u64,
+        start_time: u64,
         ctx: &mut TxContext,
     ) {
         let (fountain, admin_cap)= core::new_fountain_with_admin_cap<S, R>(
@@ -35,6 +38,7 @@ module bucket_fountain::fountain_periphery {
             flow_interval,
             min_lock_time,
             max_lock_time,
+            start_time,
             ctx,
         );
         transfer::public_share_object(fountain);

@@ -232,12 +232,14 @@ module bucket_fountain::test_update_flow_rate {
         ts::next_tx(scenario, ftu::dev());
         {
             let clock = ts::take_shared<Clock>(scenario);
+            let current_time = clock::timestamp_ms(&clock);
             let admin_cap = ts::take_from_sender<AdminCap>(scenario);
             let fountain = fc::new_fountain<TEST_LP, SUI>(
                 flow_amount,
                 flow_interval,
                 min_lock_time,
                 max_lock_time,
+                current_time,
                 ts::ctx(scenario),
             );
             fc::update_flow_rate(&admin_cap, &clock, &mut fountain, flow_amount * 3, flow_interval * 2);

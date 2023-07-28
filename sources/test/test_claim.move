@@ -294,11 +294,13 @@ module bucket_fountain::test_claim {
         ts::next_tx(scenario, staker);
         {
             let clock = ts::take_shared<Clock>(scenario);
+            let current_time = clock::timestamp_ms(&clock);
             let fountain = fc::new_fountain<TEST_LP, SUI>(
                 flow_amount,
                 flow_interval,
                 min_lock_time,
                 max_lock_time,
+                current_time,
                 ts::ctx(scenario),
             );
             let proof = ts::take_from_sender<StakeProof<TEST_LP, SUI>>(scenario);
