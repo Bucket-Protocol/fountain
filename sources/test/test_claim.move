@@ -24,6 +24,7 @@ module bucket_fountain::test_claim {
             flow_interval,
             min_lock_time,
             max_lock_time,
+            false,
         );
         let scenario = &mut scenario_val;
 
@@ -265,6 +266,7 @@ module bucket_fountain::test_claim {
             flow_interval,
             min_lock_time,
             max_lock_time,
+            true,
         );
         let scenario = &mut scenario_val;
         let stakers = ftu::stake_randomly<TEST_LP, SUI>(scenario, 5);

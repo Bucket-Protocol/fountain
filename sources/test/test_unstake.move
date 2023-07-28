@@ -23,6 +23,7 @@ module bucket_fountain::test_unstake {
             flow_interval,
             min_lock_time,
             max_lock_time,
+            false,
         );
         let scenario = &mut scenario_val;
 
@@ -64,14 +65,17 @@ module bucket_fountain::test_unstake {
                 let proof = ts::take_from_sender<StakeProof<TEST_LP, SUI>>(scenario);
                 let lock_util = fc::get_proof_lock_until(&proof);
                 // std::debug::print(&lock_util);
-                if (clock::timestamp_ms(&clock) >= lock_util) {
+                let current_time = clock::timestamp_ms(&clock);
+                if (current_time >= lock_util) {
                     let total_weight = fc::get_total_weight(&fountain);
                     let stake_weight = fc::get_proof_stake_weight(&proof);
                     let stake_amount = fc::get_proof_stake_amount(&proof);
+                    let reward_amount = fc::get_reward_amount(&fountain, &proof, current_time);
                     let expected_reward_amount = math::mul_factor(flow_amount, stake_weight, total_weight);
+                    assert!(reward_amount == expected_reward_amount, 0);
                     vector::push_back(&mut unstakers, staker);
                     vector::push_back(&mut stake_amounts, stake_amount);
-                    vector::push_back(&mut reward_amounts, expected_reward_amount);
+                    vector::push_back(&mut reward_amounts, reward_amount);
                     fp::unstake(&clock, &mut fountain, proof, ts::ctx(scenario));
                 } else {
                     ts::return_to_sender(scenario, proof);
@@ -118,6 +122,7 @@ module bucket_fountain::test_unstake {
             flow_interval,
             min_lock_time,
             max_lock_time,
+            false,
         );
         let scenario = &mut scenario_val;
 
@@ -185,6 +190,7 @@ module bucket_fountain::test_unstake {
             flow_interval,
             min_lock_time,
             max_lock_time,
+            false,
         );
         let scenario = &mut scenario_val;
         let stakers = ftu::stake_randomly<TEST_LP, SUI>(scenario, 3);
@@ -210,7 +216,7 @@ module bucket_fountain::test_unstake {
             ts::return_shared(clock);
         };
 
-        let staker = *vector::borrow(&stakers, 0);
+        let staker = *vector::borrow(&stakers, 1);
         ts::next_tx(scenario, staker);
         {
             let clock = ts::take_shared<Clock>(scenario);

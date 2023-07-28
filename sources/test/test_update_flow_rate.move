@@ -19,11 +19,12 @@ module bucket_fountain::test_update_flow_rate {
         let flow_interval: u64 = 86400_000 * 7; // 1 week
         let min_lock_time: u64 = flow_interval * 5;
         let max_lock_time: u64 = flow_interval * 20;
-        let scenario_val = ftu::setup_with_admin_cap<TEST_LP, SUI>(
+        let scenario_val = ftu::setup<TEST_LP, SUI>(
             flow_amount,
             flow_interval,
             min_lock_time,
             max_lock_time,
+            true,
         );
         let scenario = &mut scenario_val;
 
@@ -199,11 +200,12 @@ module bucket_fountain::test_update_flow_rate {
         let flow_interval: u64 = 86400_000 * 7; // 1 week
         let min_lock_time: u64 = flow_interval * 5;
         let max_lock_time: u64 = flow_interval * 20;
-        let scenario_val = ftu::setup_with_admin_cap<TEST_LP, SUI>(
+        let scenario_val = ftu::setup<TEST_LP, SUI>(
             flow_amount,
             flow_interval,
             min_lock_time,
             max_lock_time,
+            true,
         );
         let scenario = &mut scenario_val;
         let _ = ftu::stake_randomly<TEST_LP, SUI>(scenario, 3);

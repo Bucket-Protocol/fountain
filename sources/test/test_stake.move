@@ -24,6 +24,7 @@ module bucket_fountain::test_stake {
             flow_interval,
             min_lock_time,
             max_lock_time,
+            false,
         );
         let scenario = &mut scenario_val;
 
@@ -54,6 +55,7 @@ module bucket_fountain::test_stake {
             flow_interval,
             min_lock_time,
             max_lock_time,
+            false,
         );
         let scenario = &mut scenario_val;
 
@@ -86,6 +88,7 @@ module bucket_fountain::test_stake {
             flow_interval,
             min_lock_time,
             max_lock_time,
+            false,
         );
         let scenario = &mut scenario_val;
 

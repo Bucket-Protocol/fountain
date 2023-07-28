@@ -43,6 +43,7 @@ module bucket_fountain::test_utils {
         flow_interval: u64,
         min_lock_time: u64,
         max_lock_time: u64,
+        with_admin_cap: bool,
     ): Scenario {
         let scenario_val = ts::begin(DEV);
         let scenario = &mut scenario_val;
@@ -56,40 +57,7 @@ module bucket_fountain::test_utils {
                 min_lock_time,
                 max_lock_time,
                 0,
-                ts::ctx(scenario),
-            );
-        };
-
-        ts::next_tx(scenario, DEV);
-        {
-            let fountain = ts::take_shared<Fountain<S, R>>(scenario);
-            let (fountain_flow_amount, fountain_flow_interval) = fc::get_flow_rate(&fountain);
-            assert!(fountain_flow_amount == flow_amount, 0);
-            assert!(fountain_flow_interval == flow_interval, 0);
-            ts::return_shared(fountain);
-        };
-
-        scenario_val
-    }
-
-    public fun setup_with_admin_cap<S, R>(
-        flow_amount: u64,
-        flow_interval: u64,
-        min_lock_time: u64,
-        max_lock_time: u64,
-    ): Scenario {
-        let scenario_val = ts::begin(DEV);
-        let scenario = &mut scenario_val;
-        {
-            let clock = clock::create_for_testing(ts::ctx(scenario));
-            clock::set_for_testing(&mut clock, START_TIME);
-            clock::share_for_testing(clock);
-            fp::create_fountain_with_admin_cap<S, R>(
-                flow_amount,
-                flow_interval,
-                min_lock_time,
-                max_lock_time,
-                0,
+                with_admin_cap,
                 ts::ctx(scenario),
             );
         };

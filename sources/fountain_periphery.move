@@ -4,6 +4,7 @@ module bucket_fountain::fountain_periphery {
     use sui::clock::Clock;
     use sui::coin::{Self, Coin};
     use sui::transfer;
+    use sui::balance;
     use bucket_fountain::fountain_core::{Self as core, Fountain, StakeProof};
 
     public entry fun create_fountain<S, R>(
@@ -12,37 +13,70 @@ module bucket_fountain::fountain_periphery {
         min_lock_time: u64,
         max_lock_time: u64,
         start_time: u64,
+        with_admin_cap: bool,
         ctx: &mut TxContext,
     ) {
-        let fountain = core::new_fountain<S, R>(
-            flow_amount,
-            flow_interval,
-            min_lock_time,
-            max_lock_time,
-            start_time,
-            ctx,
-        );
-        transfer::public_share_object(fountain);
+        if (with_admin_cap) {
+            let (fountain, admin_cap)= core::new_fountain_with_admin_cap<S, R>(
+                flow_amount,
+                flow_interval,
+                min_lock_time,
+                max_lock_time,
+                start_time,
+                ctx,
+            );
+            transfer::public_share_object(fountain);
+            transfer::public_transfer(admin_cap, tx_context::sender(ctx));
+        } else {
+            let fountain = core::new_fountain<S, R>(
+                flow_amount,
+                flow_interval,
+                min_lock_time,
+                max_lock_time,
+                start_time,
+                ctx,
+            );
+            transfer::public_share_object(fountain);
+        }
     }
 
-    public entry fun create_fountain_with_admin_cap<S, R>(
+    public entry fun setup_fountain<S, R>(
+        clock: &Clock,
+        init_supply: Coin<R>,
         flow_amount: u64,
         flow_interval: u64,
         min_lock_time: u64,
         max_lock_time: u64,
         start_time: u64,
+        with_admin_cap: bool,
         ctx: &mut TxContext,
     ) {
-        let (fountain, admin_cap)= core::new_fountain_with_admin_cap<S, R>(
-            flow_amount,
-            flow_interval,
-            min_lock_time,
-            max_lock_time,
-            start_time,
-            ctx,
-        );
-        transfer::public_share_object(fountain);
-        transfer::public_transfer(admin_cap, tx_context::sender(ctx));
+        if (with_admin_cap) {
+            let (fountain, admin_cap) = core::new_fountain_with_admin_cap<S, R>(
+                flow_amount,
+                flow_interval,
+                min_lock_time,
+                max_lock_time,
+                start_time,
+                ctx,
+            );
+            let init_supply = coin::into_balance(init_supply);
+            core::supply(clock, &mut fountain, init_supply);
+            transfer::public_share_object(fountain);
+            transfer::public_transfer(admin_cap, tx_context::sender(ctx));
+        } else {
+            let fountain = core::new_fountain<S, R>(
+                flow_amount,
+                flow_interval,
+                min_lock_time,
+                max_lock_time,
+                start_time,
+                ctx,
+            );
+            let init_supply = coin::into_balance(init_supply);
+            core::supply(clock, &mut fountain, init_supply);
+            transfer::public_share_object(fountain);
+        }
     }
 
     public entry fun supply<S, R>(clock: &Clock, fountain: &mut Fountain<S, R>, resource: Coin<R>) {
@@ -79,8 +113,12 @@ module bucket_fountain::fountain_periphery {
         ctx: &mut TxContext,
     ) {
         let reward = core::claim(clock, fountain, proof);
-        let reward = coin::from_balance(reward, ctx);
-        transfer::public_transfer(reward, tx_context::sender(ctx));
+        if (balance::value(&reward) > 0) {
+            let reward = coin::from_balance(reward, ctx);
+            transfer::public_transfer(reward, tx_context::sender(ctx));
+        } else {
+            balance::destroy_zero(reward);
+        };
     }
 
     public entry fun unstake<S, R>(
@@ -91,9 +129,13 @@ module bucket_fountain::fountain_periphery {
     ) {
         let (unstake_output, reward) = core::unstake(clock, fountain, proof);
         let unstake_output = coin::from_balance(unstake_output, ctx);
-        let reward = coin::from_balance(reward, ctx);
         let sender = tx_context::sender(ctx);
         transfer::public_transfer(unstake_output, sender);
-        transfer::public_transfer(reward, sender);
+        if (balance::value(&reward) > 0) {
+            let reward = coin::from_balance(reward, ctx);
+            transfer::public_transfer(reward, sender);
+        } else {
+            balance::destroy_zero(reward);
+        }
     }
 }

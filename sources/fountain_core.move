@@ -251,6 +251,10 @@ module bucket_fountain::fountain_core {
         proof.lock_until
     }
 
+    public fun get_latest_release_time<S, R>(fountain: &Fountain<S, R>): u64 {
+        fountain.latest_release_time
+    }
+
     public fun get_reward_amount<S, R>(
         fountain: &Fountain<S, R>,
         proof: &StakeProof<S, R>,
