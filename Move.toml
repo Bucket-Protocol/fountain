@@ -1,10 +1,10 @@
 [package]
 name = "BucketFountain"
 version = "0.0.1"
-published-at = "0x66c1d812e302833ef439a60a3f34712b24a5ac8d0c56d0f4260b336ef1a09d73"
+published-at = "0x51cd7d9af32fddd16e1ccb82bb97bd52276cc15be3b9134462f0967a9cf17460"
 
 [dependencies]
 Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "framework/mainnet" }
 
 [addresses]
-bucket_fountain = "0x66c1d812e302833ef439a60a3f34712b24a5ac8d0c56d0f4260b336ef1a09d73"
+bucket_fountain = "0x51cd7d9af32fddd16e1ccb82bb97bd52276cc15be3b9134462f0967a9cf17460"
