@@ -188,6 +188,7 @@ module bucket_fountain::fountain_core {
         assert!(object::id(fountain) == fountain_id, EWrongFountainId);
         assert!(current_time >= lock_until, EStillLocked);
         object::delete(id);
+        fountain.total_weight = fountain.total_weight - stake_weight;
         event::emit(UnstakeEvent<S, R> {
             fountain_id,
             unstake_amount: stake_amount,

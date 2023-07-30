@@ -4,21 +4,21 @@ A system to manage stake token and incentive token.
 ## Objects
 Package ID
 ```
-0x51cd7d9af32fddd16e1ccb82bb97bd52276cc15be3b9134462f0967a9cf17460
+0x8f16cb934fa0c4ad403ac3fddaab8585a642f2073a47a32215a77448c3e353c6
 ```
-Fountain of Aftermath SUI-BUCK pool, initial_shared_version `5174511`
+Fountain of Aftermath SUI-BUCK pool, initial_shared_version `6366296`
 ```
-0xf26f5d6e3ac6c0063b835ca29ccb245e92fddacf6b85eccdac5e6b9197f09b58
+0xe2569ee20149c2909f0f6527c210bc9d97047fe948d34737de5420fab2db7062
 ```
 AdminCap of Fountain(SUI-BUCK)
 ```
-0xd8b81e8e8adc39f458120a614d3ed9e561929ffdeb493e9694dc061b26b27ff6
+0xc588d8b83ddb2d16df86c6f59ab511013788f1a5e83f3ad293c15961eef309a5
 ```
-Fountain of Aftermath USDC-BUCK pool, initial_shared_version `6366293`
+Fountain of Aftermath USDC-BUCK pool, initial_shared_version `6366295`
 ```
-0x603f74460b8bc31603507a719512c34a286a0591b5182d3aed4eb6a6d6ffb47c
+0x885e09419b395fcf5c8ee5e2b7c77e23b590e58ef3d61260b6b4eb44bbcc8c62
 ```
 AdminCap of Fountain(USDC-BUCK)
 ```
-0x58f11d22ab156490db446b5735657f04f4af14d015671193bc33688e710892bd
+0x0657179e1edb1cc7078cec113cfa70277e2a0cc1215a8e98a7cbfb024d53cbd4
 ```
