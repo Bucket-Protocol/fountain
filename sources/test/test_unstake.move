@@ -45,10 +45,14 @@ module bucket_fountain::test_unstake {
 
         let fifteen_weeks: u64 = 86400_000 * 7 * 15;
         ts::next_tx(scenario, ftu::dev());
-        {
+        let total_weight = {
             let clock = ts::take_shared<Clock>(scenario);
+            let fountain = ts::take_shared<Fountain<TEST_LP, SUI>>(scenario);
             clock::increment_for_testing(&mut clock, fifteen_weeks);
+            let total_weight = fc::get_total_weight(&fountain);
             ts::return_shared(clock);
+            ts::return_shared(fountain);
+            total_weight
         };
 
         let idx: u64 = 0;
@@ -67,11 +71,12 @@ module bucket_fountain::test_unstake {
                 // std::debug::print(&lock_util);
                 let current_time = clock::timestamp_ms(&clock);
                 if (current_time >= lock_util) {
-                    let total_weight = fc::get_total_weight(&fountain);
                     let stake_weight = fc::get_proof_stake_weight(&proof);
                     let stake_amount = fc::get_proof_stake_amount(&proof);
                     let reward_amount = fc::get_reward_amount(&fountain, &proof, current_time);
                     let expected_reward_amount = math::mul_factor(flow_amount, stake_weight, total_weight);
+                    // std::debug::print(&reward_amount);
+                    // std::debug::print(&expected_reward_amount);
                     assert!(reward_amount == expected_reward_amount, 0);
                     vector::push_back(&mut unstakers, staker);
                     vector::push_back(&mut stake_amounts, stake_amount);
