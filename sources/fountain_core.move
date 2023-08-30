@@ -5,12 +5,18 @@ module bucket_fountain::fountain_core {
     use sui::object::{Self, ID, UID};
     use sui::clock::{Self, Clock};
     use sui::event;
+    use sui::dynamic_field as df;
     use bucket_fountain::math;
 
     const DISTRIBUTION_PRECISION: u128 = 0x10000000000000000;
+    const PENALTY_RATE_PRECISION: u64 = 1_000_000;
 
     const EStillLocked: u64 = 0;
-    const EWrongFountainId: u64 = 1;
+    const EInvalidProof: u64 = 1;
+    const ENotLocked:  u64 = 2;
+    const EInvalidAdminCap: u64 = 3;
+    const EAlreadyHasPenaltyVault: u64 = 4;
+    const EPenaltyVaultNotExists: u64 = 5;
 
     struct AdminCap has key, store {
         id: UID,
@@ -38,6 +44,13 @@ module bucket_fountain::fountain_core {
         start_uint: u128,
         stake_weight: u64,
         lock_until: u64,
+    }
+
+    struct PenaltyKey has store, copy, drop {}
+
+    struct PenaltyVault<phantom S> has store {
+        max_penalty_rate: u64,
+        vault: Balance<S>,
     }
 
     struct StakeEvent<phantom S, phantom R> has copy, drop {
@@ -98,6 +111,30 @@ module bucket_fountain::fountain_core {
         (fountain, admin_cap)
     }
 
+    public fun new_penalty_vault<S, R>(
+        admin_cap: &AdminCap,
+        fountain: &mut Fountain<S, R>,
+        max_penalty_rate: u64,
+    ) {
+        check_admin_cap(admin_cap, fountain);
+        let penalty_key = PenaltyKey {};
+        assert!(
+            !df::exists_with_type<PenaltyKey, PenaltyVault<S>>(
+                &fountain.id,
+                penalty_key,
+            ),
+            EAlreadyHasPenaltyVault,
+        );
+        df::add(
+            &mut fountain.id,
+            penalty_key,
+            PenaltyVault {
+                max_penalty_rate,
+                vault: balance::zero<S>(),
+            }
+        );
+    }
+
     public fun supply<S, R>(clock: &Clock, fountain: &mut Fountain<S, R>, resource: Balance<R>) {
         source_to_pool(fountain, clock);
         balance::join(&mut fountain.source, resource);
@@ -152,9 +189,9 @@ module bucket_fountain::fountain_core {
         fountain: &mut Fountain<S, R>,
         proof: &mut StakeProof<S, R>,
     ): Balance<R> {
+        check_proof(fountain, proof);
         source_to_pool(fountain, clock);
         let fountain_id = proof.fountain_id;
-        assert!(object::id(fountain) == fountain_id, EWrongFountainId);
         let reward_amount = (math::mul_factor_u128(
             (proof.stake_weight as u128),
             fountain.cumulative_unit - proof.start_uint,
@@ -174,6 +211,7 @@ module bucket_fountain::fountain_core {
         fountain: &mut Fountain<S, R>,
         proof: StakeProof<S, R>,
     ): (Balance<S>, Balance<R>) {
+        check_proof(fountain, &proof);
         source_to_pool(fountain, clock);
         let current_time = clock::timestamp_ms(clock);
         let reward = claim(clock, fountain, &mut proof);
@@ -185,7 +223,6 @@ module bucket_fountain::fountain_core {
             stake_weight,
             lock_until
         } = proof;
-        assert!(object::id(fountain) == fountain_id, EWrongFountainId);
         assert!(current_time >= lock_until, EStillLocked);
         object::delete(id);
         fountain.total_weight = fountain.total_weight - stake_weight;
@@ -199,6 +236,41 @@ module bucket_fountain::fountain_core {
         (returned_stake, reward)
     }
 
+    public fun force_unstake<S, R>(
+        clock: &Clock,
+        fountain: &mut Fountain<S, R>,
+        proof: StakeProof<S, R>,
+    ): (Balance<S>, Balance<R>) {
+        check_proof(fountain, &proof);
+        source_to_pool(fountain, clock);
+        let current_time = clock::timestamp_ms(clock);
+        let reward = claim(clock, fountain, &mut proof);
+        let penalty_amount = get_penalty_amount(fountain, &proof, current_time);
+        let StakeProof {
+            id,
+            fountain_id,
+            stake_amount,
+            start_uint: _,
+            stake_weight,
+            lock_until,
+        } = proof;
+        assert!(object::id(fountain) == fountain_id, EInvalidProof);
+        assert!(current_time < lock_until, ENotLocked);
+        object::delete(id);
+        fountain.total_weight = fountain.total_weight - stake_weight;
+        event::emit(UnstakeEvent<S, R> {
+            fountain_id,
+            unstake_amount: stake_amount,
+            unstake_weigth: stake_weight,
+            end_time: current_time,
+        });
+        let returned_stake = balance::split(&mut fountain.staked, stake_amount);
+        let penalty = balance::split(&mut returned_stake, penalty_amount);
+        let penalty_vault = borrow_mut_penalty_vault(fountain);
+        balance::join(&mut penalty_vault.vault, penalty);
+        (returned_stake, reward)
+    }
+
     public entry fun update_flow_rate<S, R>(
         admin_cap: &AdminCap,
         clock: &Clock,
@@ -206,10 +278,32 @@ module bucket_fountain::fountain_core {
         flow_amount: u64,
         flow_interval: u64
     ) {
-        assert!(admin_cap.fountain_id == object::id(fountain), EWrongFountainId);
+        check_admin_cap(admin_cap, fountain);
+        assert!(admin_cap.fountain_id == object::id(fountain), EInvalidProof);
         source_to_pool(fountain, clock);
         fountain.flow_amount = flow_amount;
         fountain.flow_interval = flow_interval;
+    }
+
+    public fun claim_penalty<S, R>(
+        admin_cap: &AdminCap,
+        fountain: &mut Fountain<S, R>,
+    ): Balance<S> {
+        check_admin_cap(admin_cap, fountain);
+        let penalty_key = PenaltyKey {};
+        assert!(
+            df::exists_with_type<PenaltyKey, PenaltyVault<S>>(
+                &fountain.id,
+                penalty_key,
+            ),
+            EPenaltyVaultNotExists,
+        );
+        let penalty_vault = df::borrow_mut<PenaltyKey, PenaltyVault<S>>(
+            &mut fountain.id,
+            penalty_key,
+        );
+        let penalty_balance = balance::value(&penalty_vault.vault);
+        balance::split(&mut penalty_vault.vault, penalty_balance)
     }
 
     public fun get_flow_rate<S, R>(fountain: &Fountain<S, R>): (u64, u64) {
@@ -238,6 +332,11 @@ module bucket_fountain::fountain_core {
 
     public fun get_cumulative_unit<S, R>(fountain: &Fountain<S, R>): u128 {
         fountain.cumulative_unit
+    }
+
+    public fun get_max_penalty_rate<S, R>(fountain: &Fountain<S, R>): u64 {
+        let penalty_vault = borrow_penalty_vault(fountain);
+        penalty_vault.max_penalty_rate
     }
 
     public fun get_proof_stake_amount<S, R>(proof: &StakeProof<S, R>): u64 {
@@ -288,6 +387,26 @@ module bucket_fountain::fountain_core {
         }
     }
 
+    public fun get_penalty_amount<S, R>(
+        fountain: &Fountain<S, R>,
+        proof: &StakeProof<S, R>,
+        current_time: u64,
+    ): u64 {
+        check_proof(fountain, proof);
+        if (current_time >= proof.lock_until) {
+            0
+        } else {
+            let max_penalty_rate = get_max_penalty_rate(fountain);
+            let penalty_cap_amount = mul(proof.stake_amount, max_penalty_rate, PENALTY_RATE_PRECISION);
+            let penalty_weight = mul(
+                proof.stake_amount,
+                proof.lock_until - current_time,
+                fountain.max_lock_time,
+            );
+            mul(penalty_cap_amount, penalty_weight, proof.stake_weight)
+        }
+    }
+
     fun release_resource<S, R>(fountain: &mut Fountain<S, R>, clock: &Clock): Balance<R> {
         let current_time = clock::timestamp_ms(clock);
         if (current_time > fountain.latest_release_time) {
@@ -332,6 +451,51 @@ module bucket_fountain::fountain_core {
                 fountain.latest_release_time = current_time;
             };
         }
+    }
+
+    public fun check_proof<S, R>(fountain: &Fountain<S, R>, proof: &StakeProof<S, R>) {
+        assert!(object::id(fountain) == proof.fountain_id, EInvalidProof);
+    }
+
+    fun check_admin_cap<S, R>(admin_cap: &AdminCap, fountain: &Fountain<S, R>) {
+        assert!(admin_cap.fountain_id == object::id(fountain), EInvalidAdminCap);
+    }
+
+    fun borrow_penalty_vault<S, R>(fountain: &Fountain<S, R>): &PenaltyVault<S> {
+        let penalty_key = PenaltyKey {};
+        assert!(
+            df::exists_with_type<PenaltyKey, PenaltyVault<S>>(
+                &fountain.id,
+                penalty_key,
+            ),
+            EPenaltyVaultNotExists,
+        );
+        df::borrow<PenaltyKey, PenaltyVault<S>>(
+            &fountain.id,
+            penalty_key,
+        )
+    }
+
+    fun borrow_mut_penalty_vault<S, R>(fountain: &mut Fountain<S, R>): &mut PenaltyVault<S> {
+        let penalty_key = PenaltyKey {};
+        assert!(
+            df::exists_with_type<PenaltyKey, PenaltyVault<S>>(
+                &fountain.id,
+                penalty_key,
+            ),
+            EPenaltyVaultNotExists,
+        );
+        df::borrow_mut<PenaltyKey, PenaltyVault<S>>(
+            &mut fountain.id,
+            penalty_key,
+        )
+    }
+
+    fun mul(x: u64, n: u64, m: u64): u64 {
+        ((
+            ((x as u128) * (n as u128) + (m as u128) / 2)
+            / (m as u128)
+        ) as u64)
     }
 
     #[test_only]

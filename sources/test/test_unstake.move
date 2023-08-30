@@ -243,7 +243,7 @@ module bucket_fountain::test_unstake {
     }
 
     #[test]
-    #[expected_failure(abort_code = fc::EWrongFountainId)]
+    #[expected_failure(abort_code = fc::EInvalidProof)]
     fun test_wrong_fountain_id() {
         let flow_amount: u64 = 100_000_000_000_000;
         let flow_interval: u64 = 86400_000 * 7; // 1 week

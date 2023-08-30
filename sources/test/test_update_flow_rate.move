@@ -197,7 +197,7 @@ module bucket_fountain::test_update_flow_rate {
     }
 
     #[test]
-    #[expected_failure(abort_code = fc::EWrongFountainId)]
+    #[expected_failure(abort_code = fc::EInvalidAdminCap)]
     fun test_update_with_wrong_admin_cap() {
         let flow_amount: u64 = 100_000_000_000_000;
         let flow_interval: u64 = 86400_000 * 7; // 1 week

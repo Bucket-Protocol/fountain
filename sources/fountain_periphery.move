@@ -5,7 +5,7 @@ module bucket_fountain::fountain_periphery {
     use sui::coin::{Self, Coin};
     use sui::transfer;
     use sui::balance;
-    use bucket_fountain::fountain_core::{Self as core, Fountain, StakeProof};
+    use bucket_fountain::fountain_core::{Self as core, Fountain, StakeProof, AdminCap};
 
     public entry fun create_fountain<S, R>(
         flow_amount: u64,
@@ -137,5 +137,36 @@ module bucket_fountain::fountain_periphery {
         } else {
             balance::destroy_zero(reward);
         }
+    }
+
+    public entry fun force_unstake<S, R>(
+        clock: &Clock,
+        fountain: &mut Fountain<S, R>,
+        proof: StakeProof<S, R>,
+        ctx: &mut TxContext,
+    ) {
+        let (unstake_output, reward) = core::force_unstake(clock, fountain, proof);
+        let unstake_output = coin::from_balance(unstake_output, ctx);
+        let sender = tx_context::sender(ctx);
+        transfer::public_transfer(unstake_output, sender);
+        if (balance::value(&reward) > 0) {
+            let reward = coin::from_balance(reward, ctx);
+            transfer::public_transfer(reward, sender);
+        } else {
+            balance::destroy_zero(reward);
+        }        
+    }
+
+    public entry fun claim_penalty<S, R>(
+        admin_cap: &AdminCap,
+        fountain: &mut Fountain<S, R>,
+        recipient: address,
+        ctx: &mut TxContext,
+    ) {
+        let penalty = core::claim_penalty(admin_cap, fountain);
+        transfer::public_transfer(
+            coin::from_balance(penalty, ctx),
+            recipient,
+        );
     }
 }
