@@ -49,6 +49,7 @@ module bucket_fountain::fountain_core {
     struct PenaltyKey has store, copy, drop {}
 
     struct PenaltyVault<phantom S> has store {
+        min_penalty_rate: u64,
         max_penalty_rate: u64,
         vault: Balance<S>,
     }
@@ -114,6 +115,7 @@ module bucket_fountain::fountain_core {
     public fun new_penalty_vault<S, R>(
         admin_cap: &AdminCap,
         fountain: &mut Fountain<S, R>,
+        min_penalty_rate: u64,
         max_penalty_rate: u64,
     ) {
         check_admin_cap(admin_cap, fountain);
@@ -129,6 +131,7 @@ module bucket_fountain::fountain_core {
             &mut fountain.id,
             penalty_key,
             PenaltyVault {
+                min_penalty_rate,
                 max_penalty_rate,
                 vault: balance::zero<S>(),
             }
@@ -334,9 +337,9 @@ module bucket_fountain::fountain_core {
         fountain.cumulative_unit
     }
 
-    public fun get_max_penalty_rate<S, R>(fountain: &Fountain<S, R>): u64 {
+    public fun get_penalty_rate_range<S, R>(fountain: &Fountain<S, R>): (u64, u64) {
         let penalty_vault = borrow_penalty_vault(fountain);
-        penalty_vault.max_penalty_rate
+        (penalty_vault.min_penalty_rate, penalty_vault.max_penalty_rate)
     }
 
     public fun get_proof_stake_amount<S, R>(proof: &StakeProof<S, R>): u64 {
@@ -396,14 +399,25 @@ module bucket_fountain::fountain_core {
         if (current_time >= proof.lock_until) {
             0
         } else {
-            let max_penalty_rate = get_max_penalty_rate(fountain);
-            let penalty_cap_amount = mul(proof.stake_amount, max_penalty_rate, PENALTY_RATE_PRECISION);
+            let (min_penalty_rate, max_penalty_rate) = get_penalty_rate_range(fountain);
+            let penalty_floor_amount = mul(
+                proof.stake_amount,
+                min_penalty_rate,
+                PENALTY_RATE_PRECISION,
+            );
+            let penalty_cap_amount = mul(
+                proof.stake_amount,
+                max_penalty_rate,
+                PENALTY_RATE_PRECISION
+            );
             let penalty_weight = mul(
                 proof.stake_amount,
                 proof.lock_until - current_time,
                 fountain.max_lock_time,
             );
-            mul(penalty_cap_amount, penalty_weight, proof.stake_weight)
+            let penalty_amount = mul(penalty_cap_amount, penalty_weight, proof.stake_weight);
+            if (penalty_amount < penalty_floor_amount) penalty_floor_amount
+            else penalty_amount 
         }
     }
 
