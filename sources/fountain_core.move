@@ -75,6 +75,11 @@ module bucket_fountain::fountain_core {
         end_time: u64,
     }
 
+    struct PenaltyEvent<phantom S> has copy, drop {
+        fountain_id: ID,
+        penalty_amount: u64,
+    }
+
     public fun new_fountain<S, R>(
         flow_amount: u64,
         flow_interval: u64,
@@ -261,16 +266,20 @@ module bucket_fountain::fountain_core {
         assert!(current_time < lock_until, ENotLocked);
         object::delete(id);
         fountain.total_weight = fountain.total_weight - stake_weight;
-        event::emit(UnstakeEvent<S, R> {
-            fountain_id,
-            unstake_amount: stake_amount,
-            unstake_weigth: stake_weight,
-            end_time: current_time,
-        });
         let returned_stake = balance::split(&mut fountain.staked, stake_amount);
         let penalty = balance::split(&mut returned_stake, penalty_amount);
         let penalty_vault = borrow_mut_penalty_vault(fountain);
         balance::join(&mut penalty_vault.vault, penalty);
+        event::emit(UnstakeEvent<S, R> {
+            fountain_id,
+            unstake_amount: balance::value(&returned_stake),
+            unstake_weigth: stake_weight,
+            end_time: current_time,
+        });
+        event::emit(PenaltyEvent<S> {
+            fountain_id,
+            penalty_amount,
+        });  
         (returned_stake, reward)
     }
 
