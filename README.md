@@ -4,7 +4,7 @@ A system to manage stake token and incentive token.
 ## Objects
 Package ID
 ```
-0x8f16cb934fa0c4ad403ac3fddaab8585a642f2073a47a32215a77448c3e353c6
+0xc4bca6b9eaae4f302e8c24f1c40e1a3bb4d271abe73cc8ae9589fafda35867cc
 ```
 Fountain of Aftermath SUI-BUCK pool, initial_shared_version `6366296`
 ```
