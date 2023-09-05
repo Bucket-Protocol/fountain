@@ -252,7 +252,7 @@ module bucket_fountain::fountain_core {
         source_to_pool(fountain, clock);
         let current_time = clock::timestamp_ms(clock);
         let reward = claim(clock, fountain, &mut proof);
-        let penalty_amount = get_penalty_amount(fountain, &proof, current_time);
+        let penalty_amount = get_proof_penalty_amount(fountain, &proof, current_time);
         let StakeProof {
             id,
             fountain_id,
@@ -398,7 +398,7 @@ module bucket_fountain::fountain_core {
         }
     }
 
-    public fun get_penalty_amount<S, R>(
+    public fun get_proof_penalty_amount<S, R>(
         fountain: &Fountain<S, R>,
         proof: &StakeProof<S, R>,
         current_time: u64,
