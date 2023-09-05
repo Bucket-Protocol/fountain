@@ -421,6 +421,8 @@ module bucket_fountain::fountain_core {
         }
     }
 
+    public fun get_penalty_rate_precision(): u64 { PENALTY_RATE_PRECISION }
+
     fun release_resource<S, R>(fountain: &mut Fountain<S, R>, clock: &Clock): Balance<R> {
         let current_time = clock::timestamp_ms(clock);
         if (current_time > fountain.latest_release_time) {
@@ -467,7 +469,7 @@ module bucket_fountain::fountain_core {
         }
     }
 
-    public fun check_proof<S, R>(fountain: &Fountain<S, R>, proof: &StakeProof<S, R>) {
+    fun check_proof<S, R>(fountain: &Fountain<S, R>, proof: &StakeProof<S, R>) {
         assert!(object::id(fountain) == proof.fountain_id, EInvalidProof);
     }
 
