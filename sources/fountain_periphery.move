@@ -82,10 +82,9 @@ module bucket_fountain::fountain_periphery {
     public entry fun create_penalty_vault<S, R>(
         admin_cap: &AdminCap,
         fountain: &mut Fountain<S, R>,
-        min_penalty_rate: u64,
         max_penalty_rate: u64,
     ) {
-        core::new_penalty_vault(admin_cap, fountain, min_penalty_rate, max_penalty_rate);
+        core::new_penalty_vault(admin_cap, fountain, max_penalty_rate);
     }
 
     public entry fun supply<S, R>(clock: &Clock, fountain: &mut Fountain<S, R>, resource: Coin<R>) {
