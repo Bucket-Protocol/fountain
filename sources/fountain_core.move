@@ -259,10 +259,8 @@ module bucket_fountain::fountain_core {
             stake_amount,
             start_uint: _,
             stake_weight,
-            lock_until,
+            lock_until: _,
         } = proof;
-        assert!(object::id(fountain) == fountain_id, EInvalidProof);
-        assert!(current_time < lock_until, ENotLocked);
         object::delete(id);
         fountain.total_weight = fountain.total_weight - stake_weight;
         let returned_stake = balance::split(&mut fountain.staked, stake_amount);
@@ -275,10 +273,12 @@ module bucket_fountain::fountain_core {
             unstake_weigth: stake_weight,
             end_time: current_time,
         });
-        event::emit(PenaltyEvent<S> {
-            fountain_id,
-            penalty_amount,
-        });  
+        if (penalty_amount > 0) {
+            event::emit(PenaltyEvent<S> {
+                fountain_id,
+                penalty_amount,
+            });  
+        };
         (returned_stake, reward)
     }
 
@@ -290,10 +290,19 @@ module bucket_fountain::fountain_core {
         flow_interval: u64
     ) {
         check_admin_cap(admin_cap, fountain);
-        assert!(admin_cap.fountain_id == object::id(fountain), EInvalidProof);
         source_to_pool(fountain, clock);
         fountain.flow_amount = flow_amount;
         fountain.flow_interval = flow_interval;
+    }
+
+    public entry fun update_max_penalty_rate<S, R>(
+        admin_cap: &AdminCap,
+        fountain: &mut Fountain<S, R>,
+        max_penalty_rate: u64,
+    ) {
+        check_admin_cap(admin_cap, fountain);
+        let penalty_vault = borrow_mut_penalty_vault(fountain);
+        penalty_vault.max_penalty_rate = max_penalty_rate;
     }
 
     public fun claim_penalty<S, R>(
