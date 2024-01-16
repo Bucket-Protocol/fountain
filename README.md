@@ -22,3 +22,11 @@ AdminCap of Fountain(USDC-BUCK)
 ```
 0x0657179e1edb1cc7078cec113cfa70277e2a0cc1215a8e98a7cbfb024d53cbd4
 ```
+Fountain of BUCKETUS, initial_shared_version `61717743`
+```
+0xb9d46d57d933fabaf9c81f4fc6f54f9c1570d3ef49785c6b7200cad6fe302909
+```
+AdminCap of Fountain(BUCKETUS)
+```
+0xf541d7c6267bb9a66ce265e9f66cd8b1a26ed72a0aaa5ebc8a0ae8e805fda3c2
+```
