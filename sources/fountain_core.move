@@ -13,11 +13,10 @@ module bucket_fountain::fountain_core {
 
     const EStillLocked: u64 = 0;
     const EInvalidProof: u64 = 1;
-    const ENotLocked:  u64 = 2;
-    const EInvalidAdminCap: u64 = 3;
-    const EAlreadyHasPenaltyVault: u64 = 4;
-    const EPenaltyVaultNotExists: u64 = 5;
-    const EInvalidMaxPenaltyRate: u64 = 6;
+    const EInvalidAdminCap: u64 = 2;
+    const EAlreadyHasPenaltyVault: u64 = 3;
+    const EPenaltyVaultNotExists: u64 = 4;
+    const EInvalidMaxPenaltyRate: u64 = 5;
 
     struct AdminCap has key, store {
         id: UID,
@@ -437,6 +436,14 @@ module bucket_fountain::fountain_core {
     }
 
     public fun get_penalty_rate_precision(): u64 { PENALTY_RATE_PRECISION }
+
+    public fun withdraw_from_source<S, R>(
+        _: &AdminCap,
+        fountain: &mut Fountain<S, R>,
+        amount: u64,
+    ): Balance<R> {
+        balance::split(&mut fountain.source, amount)
+    }
 
     fun release_resource<S, R>(fountain: &mut Fountain<S, R>, clock: &Clock): Balance<R> {
         let current_time = clock::timestamp_ms(clock);

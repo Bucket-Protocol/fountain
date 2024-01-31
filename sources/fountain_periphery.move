@@ -7,6 +7,7 @@ module bucket_fountain::fountain_periphery {
     use sui::balance;
     use bucket_fountain::fountain_core::{Self as core, Fountain, StakeProof, AdminCap};
 
+    #[lint_allow(share_owned)]
     public entry fun create_fountain<S, R>(
         flow_amount: u64,
         flow_interval: u64,
@@ -40,6 +41,7 @@ module bucket_fountain::fountain_periphery {
         }
     }
 
+    #[lint_allow(share_owned)]
     public entry fun setup_fountain<S, R>(
         clock: &Clock,
         init_supply: Coin<R>,
@@ -176,5 +178,20 @@ module bucket_fountain::fountain_periphery {
             coin::from_balance(penalty, ctx),
             recipient,
         );
+    }
+
+    public entry fun withdraw_from_source<S, R>(
+        cap: &AdminCap,
+        fountain: &mut Fountain<S, R>,
+        recipient: address,
+        amount: u64,
+        ctx: &mut TxContext,
+    ) {
+        let fund = core::withdraw_from_source<S, R>(
+            cap,
+            fountain,
+            amount,
+        );
+        transfer::public_transfer(coin::from_balance(fund, ctx), recipient);
     }
 }
