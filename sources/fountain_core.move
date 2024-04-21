@@ -438,10 +438,11 @@ module bucket_fountain::fountain_core {
     public fun get_penalty_rate_precision(): u64 { PENALTY_RATE_PRECISION }
 
     public fun withdraw_from_source<S, R>(
-        _: &AdminCap,
+        admin_cap: &AdminCap,
         fountain: &mut Fountain<S, R>,
         amount: u64,
     ): Balance<R> {
+        check_admin_cap(admin_cap, fountain);
         balance::split(&mut fountain.source, amount)
     }
 
