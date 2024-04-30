@@ -17,6 +17,7 @@ module bucket_fountain::fountain_core {
     const EAlreadyHasPenaltyVault: u64 = 3;
     const EPenaltyVaultNotExists: u64 = 4;
     const EInvalidMaxPenaltyRate: u64 = 5;
+    const EInvalidLockTimeConfig: u64 = 6; // FCO-5
 
     struct AdminCap has key, store {
         id: UID,
@@ -79,6 +80,32 @@ module bucket_fountain::fountain_core {
         penalty_amount: u64,
     }
 
+    struct SupplyEvent<phantom R> has copy, drop {
+        fountain_id: ID,
+        amount: u64,
+    }
+
+    struct WithdrawEvent<phantom R> has copy, drop {
+        fountain_id: ID,
+        amount: u64,
+    }
+
+    struct FlowRateUpdated<phantom R> has copy, drop {
+        fountain_id: ID,
+        flow_amount: u64,
+        flow_interval: u64,
+    }
+
+    struct MaxPenaltyRateUpdated<phantom S> has copy, drop {
+        fountain_id: ID,
+        max_penalty_rate: u64,
+    }
+
+    struct PenaltyClaimed<phantom S> has copy, drop {
+        fountain_id: ID,
+        amount: u64,
+    }
+
     public fun new_fountain<S, R>(
         flow_amount: u64,
         flow_interval: u64,
@@ -87,6 +114,10 @@ module bucket_fountain::fountain_core {
         start_time: u64,
         ctx: &mut TxContext,
     ): Fountain<S, R> {
+        assert!(
+            max_lock_time > min_lock_time,
+            EInvalidLockTimeConfig,
+        ); // FCO-5
         Fountain {
             id: object::new(ctx),
             source: balance::zero(),
@@ -143,6 +174,10 @@ module bucket_fountain::fountain_core {
 
     public fun supply<S, R>(clock: &Clock, fountain: &mut Fountain<S, R>, resource: Balance<R>) {
         source_to_pool(fountain, clock);
+        event::emit(SupplyEvent<R> {
+            fountain_id: object::id(fountain),
+            amount: balance::value(&resource),
+        }); // FCO-4
         balance::join(&mut fountain.source, resource);
     }
 
@@ -292,6 +327,11 @@ module bucket_fountain::fountain_core {
         source_to_pool(fountain, clock);
         fountain.flow_amount = flow_amount;
         fountain.flow_interval = flow_interval;
+        event::emit(FlowRateUpdated<R> {
+            fountain_id: object::id(fountain),
+            flow_amount,
+            flow_interval,
+        }); // FCO-4
     }
 
     public entry fun update_max_penalty_rate<S, R>(
@@ -299,9 +339,17 @@ module bucket_fountain::fountain_core {
         fountain: &mut Fountain<S, R>,
         max_penalty_rate: u64,
     ) {
+        assert!(
+            max_penalty_rate <= PENALTY_RATE_PRECISION,
+            EInvalidMaxPenaltyRate,
+        ); // FCO-2
         check_admin_cap(admin_cap, fountain);
         let penalty_vault = borrow_mut_penalty_vault(fountain);
         penalty_vault.max_penalty_rate = max_penalty_rate;
+        event::emit(MaxPenaltyRateUpdated<S> {
+            fountain_id: object::id(fountain),
+            max_penalty_rate,
+        }); // FCO-4
     }
 
     public fun claim_penalty<S, R>(
@@ -322,7 +370,12 @@ module bucket_fountain::fountain_core {
             penalty_key,
         );
         let penalty_balance = balance::value(&penalty_vault.vault);
-        balance::split(&mut penalty_vault.vault, penalty_balance)
+        let penalty = balance::split(&mut penalty_vault.vault, penalty_balance);
+        event::emit(PenaltyClaimed<S> {
+            fountain_id: object::id(fountain),
+            amount: penalty_balance,
+        }); // FCO-4
+        penalty
     }
 
     public fun get_flow_rate<S, R>(fountain: &Fountain<S, R>): (u64, u64) {
@@ -443,6 +496,10 @@ module bucket_fountain::fountain_core {
         amount: u64,
     ): Balance<R> {
         check_admin_cap(admin_cap, fountain);
+        event::emit(WithdrawEvent<R> {
+            fountain_id: object::id(fountain),
+            amount,
+        }); // FCO-4
         balance::split(&mut fountain.source, amount)
     }
 
@@ -481,7 +538,7 @@ module bucket_fountain::fountain_core {
     }
 
     fun source_to_pool<S, R>(fountain: &mut Fountain<S, R>, clock: &Clock) {
-        if (get_source_balance(fountain) > 0) {
+        if (get_source_balance(fountain) > 0 && get_total_weight(fountain) > 0) { // FCO-3
             let resource = release_resource(fountain, clock);
             collect_resource(fountain, resource);
         } else {
