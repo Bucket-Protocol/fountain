@@ -238,11 +238,13 @@ module bucket_fountain::fountain_core {
             fountain.cumulative_unit - proof.start_uint,
             DISTRIBUTION_PRECISION,
             ) as u64);
-        event::emit(ClaimEvent<S, R> {
-            fountain_id,
-            reward_amount,
-            claim_time: clock::timestamp_ms(clock),
-        });
+        if (reward_amount > 0) {
+            event::emit(ClaimEvent<S, R> {
+                fountain_id,
+                reward_amount,
+                claim_time: clock::timestamp_ms(clock),
+            });
+        }; // FCO-6
         proof.start_uint = fountain.cumulative_unit;
         balance::split(&mut fountain.pool, reward_amount)
     }
