@@ -194,4 +194,16 @@ module bucket_fountain::fountain_periphery {
         );
         transfer::public_transfer(coin::from_balance(fund, ctx), recipient);
     }
+
+    entry fun supply_and_update_flow_rate<S, R>(
+        admin_cap: &AdminCap,
+        clock: &Clock,
+        fountain: &mut Fountain<S, R>,
+        flow_interval: u64,
+        resource: Coin<R>,
+    ) {
+        let resource_value = coin::value(&resource);
+        core::update_flow_rate(admin_cap, clock, fountain, resource_value, flow_interval);
+        supply(clock, fountain, resource);
+    }
 }

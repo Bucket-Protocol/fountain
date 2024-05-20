@@ -4,7 +4,7 @@ A system to manage stake token and incentive token.
 ## Objects
 Package ID
 ```
-0xa9604cc6b7ba8a55671f02751621601e34ed64b35b3b68a0c526bd41aaf460f3
+0xf1d3bba9e0787723ec8799954b25a2ab0079a3d2f4ea6100ce714857159435ff
 ```
 sBUCK Fountain, initial_shared_version `87170268`
 ```
