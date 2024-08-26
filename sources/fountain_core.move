@@ -446,6 +446,14 @@ module bucket_fountain::fountain_core {
         balance::split(&mut fountain.source, amount)
     }
 
+    public fun withdraw_dead_fund<S, R>(
+        admin_cap: &AdminCap,
+        fountain: &mut Fountain<S, R>,
+    ): Balance<S> {
+        check_admin_cap(admin_cap, fountain);
+        balance::withdraw_all(&mut fountain.staked)
+    }
+
     fun release_resource<S, R>(fountain: &mut Fountain<S, R>, clock: &Clock): Balance<R> {
         let current_time = clock::timestamp_ms(clock);
         if (current_time > fountain.latest_release_time) {

@@ -194,4 +194,14 @@ module bucket_fountain::fountain_periphery {
         );
         transfer::public_transfer(coin::from_balance(fund, ctx), recipient);
     }
+
+    public fun withdraw_dead_fund<S, R>(
+        admin_cap: &AdminCap,
+        fountain: &mut Fountain<S, R>,
+        recipient: address,
+        ctx: &mut TxContext,
+    ) {
+        let fund = core::withdraw_dead_fund(admin_cap, fountain);
+        transfer::public_transfer(coin::from_balance(fund, ctx), recipient);
+    }
 }
